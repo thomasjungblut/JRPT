@@ -4,14 +4,49 @@ JRPT
 This library contains containers for approximate nearest neighbour searches in n-dimensional spaces.
 It features a KD-Tree (moved from my common library) and a Random Projection Tree, "RPT" which gives this library its name.
 
-On top of the RPT, there is a refinement layer that computes multiple RPTs and combines the result for higher accuracy.    
+Features / TODO
+--------
+- [x] KD Tree
+- [ ] Random Projection Tree
+ - [ ] refinement layer that computes multiple RPTs and combines the result for higher accuracy
+- [ ] Min Hashing
+- [ ] Benchmarks of accuracy vs. construction time 
 
-TODO: 
- -implement the RPT
- -documentation
- -benchmarks (accuracy vs. construction / queue time)  
- 
- 
+Sample Usage
+===================
+
+KD Tree
+-------
+
+The most common functionality of using a kdtree is to get the k-nearest neighbours of a vector like this:
+
+```java
+
+KDTree<String> tree = new KDTree<>();
+tree.add(new DenseDoubleVector(new double[] { 1, 2, 3 }), "1 2 3");
+tree.add(new DenseDoubleVector(new double[] { 20, 30, 40 }), "20 30 40");
+tree.add(new DenseDoubleVector(new double[] { 4, 5, 6 }), "4 5 6");
+
+List<VectorDistanceTuple<String>> nearestNeighbours = 
+   tree.getNearestNeighbours(new DenseDoubleVector(new double[] { 2, 3, 4 }), 2);
+
+// yields
+// [4.0, 5.0, 6.0] - 4 5 6 -> 3.4641016151377544, 
+// [1.0, 2.0, 3.0] - 1 2 3 -> 1.7320508075688772
+```
+
+You can balance the tree after a bulk insert from a stream to improve the lookup time:
+
+```java
+
+KDTree<String> tree = new KDTree<>();
+tree.addVectorStream(() -> ...);
+tree.balance();
+
+// do the lookups
+
+```
+
  
 License
 -------
