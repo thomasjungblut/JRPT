@@ -5,16 +5,30 @@ import java.util.stream.Stream;
 import de.jungblut.math.DoubleVector;
 import de.jungblut.math.tuple.Tuple;
 
+/**
+ * Construction interface for ANN (approximate nearest neighbours).
+ * 
+ * @param <VALUE> the value type of the payload.
+ */
 public interface ANNConstruction<VALUE> {
 
   /**
-   * Constructs the ANN searcher from pure vectors.
+   * Adds a new vector to the tree with the given payload. The payload may be
+   * null, the vector is not allowed to be non-null.
+   * 
+   * @param v the non-null vector.
+   * @param payload the maybe null payload for this vector.
    */
-  public void constructFromVectors(Stream<DoubleVector> vectors);
+  public void add(DoubleVector v, VALUE payload);
 
   /**
-   * Constructs the ANN searcher from pairs of vector and metadata (payload).
+   * Adds the given vector stream into the tree.
    */
-  public void constructWithPayload(Stream<Tuple<DoubleVector, VALUE>> pairs);
+  public void addVectorStream(Stream<DoubleVector> vectors);
+
+  /**
+   * Adds the given stream of vector/payload pairs into the tree.
+   */
+  public void addStream(Stream<Tuple<DoubleVector, VALUE>> pairs);
 
 }

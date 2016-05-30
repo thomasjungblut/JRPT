@@ -38,16 +38,14 @@ public class KDTreeTest {
         new DenseDoubleVector(new double[] { 5 }),
         new DenseDoubleVector(new double[] { 7 }), };
 
-    tree.constructFromVectors(Arrays.asList(array).stream());
+    tree.addVectorStream(Arrays.asList(array).stream());
 
-    System.out.println(tree);
-    tree.balanceBySort();
-    System.out.println(tree);
+    tree.balance();
+
     int index = 0;
     for (DoubleVector v : tree) {
       assertEquals(bfsResult[index++], v);
     }
-
   }
 
   @Test
@@ -61,7 +59,7 @@ public class KDTreeTest {
         new DenseDoubleVector(new double[] { 8, 1 }),
         new DenseDoubleVector(new double[] { 7, 2 }), };
 
-    tree.constructFromVectors(Arrays.asList(array).stream());
+    tree.addVectorStream(Arrays.asList(array).stream());
 
     double maxDist = new EuclidianDistance()
         .measureDistance(array[0], array[1]);
@@ -93,7 +91,7 @@ public class KDTreeTest {
         new DenseDoubleVector(new double[] { 8, 1 }),
         new DenseDoubleVector(new double[] { 7, 2 }), };
 
-    tree.constructFromVectors(Arrays.asList(array).stream());
+    tree.addVectorStream(Arrays.asList(array).stream());
 
     DoubleVector[] result = new DoubleVector[] {
         new DenseDoubleVector(new double[] { 2, 3 }),
@@ -123,31 +121,12 @@ public class KDTreeTest {
         new DenseDoubleVector(new double[] { 8, 1 }),
         new DenseDoubleVector(new double[] { 7, 2 }), };
 
-    tree.constructFromVectors(Arrays.asList(array).stream());
+    tree.addVectorStream(Arrays.asList(array).stream());
 
     List<VectorDistanceTuple<Object>> nearestNeighbours = tree
         .getNearestNeighbours(new DenseDoubleVector(new double[] { 0, 0 }), 1);
     assertEquals(1, nearestNeighbours.size());
     assertTrue(array[0] == nearestNeighbours.get(0).getVector());
-  }
-
-  @Test
-  public void testMedian() throws Exception {
-    assertEquals(1,
-        KDTree.median(new DenseDoubleVector(new double[] { 2, 3 }), 0));
-    assertEquals(0,
-        KDTree.median(new DenseDoubleVector(new double[] { 9, 6 }), 0));
-    assertEquals(2,
-        KDTree.median(new DenseDoubleVector(new double[] { 9, 6, 8 }), 0));
-    assertEquals(1,
-        KDTree.median(new DenseDoubleVector(new double[] { 9, 8, 7 }), 0));
-    assertEquals(0,
-        KDTree.median(new DenseDoubleVector(new double[] { 8, 9, 6 }), 0));
-
-    assertEquals(
-        1,
-        KDTree.median(new DenseDoubleVector(new double[] { 8, 9, 6, 19, 25, 2,
-            3, 4 }), 8));
   }
 
   @Test
@@ -162,13 +141,16 @@ public class KDTreeTest {
 
     KDTree<Object> tree = new KDTree<>();
 
-    tree.constructFromVectors(Arrays.asList(array).stream());
+    tree.addVectorStream(Arrays.asList(array).stream());
 
-    List<DoubleVector> rangeQuery = tree.rangeQuery(new DenseDoubleVector(
-        new double[] { 4 }), new DenseDoubleVector(new double[] { 8 }));
+    List<VectorDistanceTuple<Object>> rangeQuery = tree.rangeQuery(
+        new DenseDoubleVector(new double[] { 4 }), new DenseDoubleVector(
+            new double[] { 8 }));
+
     assertEquals(4, rangeQuery.size());
-    for (int i = 2; i < array.length; i++)
-      assertEquals(array[i], rangeQuery.get(i - 2));
+    for (int i = 2; i < array.length; i++) {
+      assertEquals(array[i], rangeQuery.get(i - 2).getVector());
+    }
 
     array = new DoubleVector[] { new DenseDoubleVector(new double[] { 2 }),
         new DenseDoubleVector(new double[] { 8 }),
@@ -178,7 +160,7 @@ public class KDTreeTest {
         new DenseDoubleVector(new double[] { 5 }) };
 
     tree = new KDTree<>();
-    tree.constructFromVectors(Arrays.asList(array).stream());
+    tree.addVectorStream(Arrays.asList(array).stream());
 
     rangeQuery = tree.rangeQuery(new DenseDoubleVector(new double[] { 4 }),
         new DenseDoubleVector(new double[] { 8 }));
@@ -221,7 +203,7 @@ public class KDTreeTest {
         new SparseDoubleVector(new double[] { 4, 7 }),
         new SparseDoubleVector(new double[] { 9, 6 }) };
 
-    tree.constructFromVectors(Arrays.asList(array).stream());
+    tree.addVectorStream(Arrays.asList(array).stream());
 
     int index = 0;
     Iterator<DoubleVector> iterator = tree.iterator();
@@ -243,31 +225,12 @@ public class KDTreeTest {
         new SparseDoubleVector(new double[] { 8, 1 }),
         new SparseDoubleVector(new double[] { 7, 2 }), };
 
-    tree.constructFromVectors(Arrays.asList(array).stream());
+    tree.addVectorStream(Arrays.asList(array).stream());
 
     List<VectorDistanceTuple<Object>> nearestNeighbours = tree
         .getNearestNeighbours(new SparseDoubleVector(new double[] { 0, 0 }), 1);
     assertEquals(1, nearestNeighbours.size());
     assertTrue(array[0] == nearestNeighbours.get(0).getVector());
-  }
-
-  @Test
-  public void testMedianSparse() throws Exception {
-    assertEquals(1,
-        KDTree.median(new SparseDoubleVector(new double[] { 2, 3 }), 0));
-    assertEquals(0,
-        KDTree.median(new SparseDoubleVector(new double[] { 9, 6 }), 0));
-    assertEquals(2,
-        KDTree.median(new SparseDoubleVector(new double[] { 9, 6, 8 }), 0));
-    assertEquals(1,
-        KDTree.median(new SparseDoubleVector(new double[] { 9, 8, 7 }), 0));
-    assertEquals(0,
-        KDTree.median(new SparseDoubleVector(new double[] { 8, 9, 6 }), 0));
-
-    assertEquals(
-        7,
-        KDTree.median(new SparseDoubleVector(new double[] { 8, 9, 6, 19, 25, 2,
-            3, 4 }), 0));
   }
 
 }
