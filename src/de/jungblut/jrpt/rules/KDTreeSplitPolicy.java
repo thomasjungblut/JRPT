@@ -5,7 +5,7 @@ import java.util.Iterator;
 import de.jungblut.math.DoubleVector;
 import de.jungblut.math.DoubleVector.DoubleVectorElement;
 
-public class KDTreeSplitPolicy implements SplitPolicy {
+public final class KDTreeSplitPolicy implements SplitPolicy {
 
   @Override
   public int splitDimension(DoubleVector v, int level) {
