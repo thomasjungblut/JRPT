@@ -11,7 +11,7 @@ import de.jungblut.jrpt.rules.KDTreeSplitPolicy;
 public final class KDTree<VALUE> extends ANNTree<VALUE> {
 
   public KDTree() {
-    super(new KDTreeSplitPolicy());
+    super(new KDTreeSplitPolicy<VALUE>());
   }
 
 }

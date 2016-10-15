@@ -1,14 +1,17 @@
 package de.jungblut.jrpt.rules;
 
 import java.util.Iterator;
+import java.util.List;
 
+import de.jungblut.jrpt.ANNTree.TreeNode;
 import de.jungblut.math.DoubleVector;
 import de.jungblut.math.DoubleVector.DoubleVectorElement;
 
-public final class KDTreeSplitPolicy implements SplitPolicy {
+public final class KDTreeSplitPolicy<VALUE> implements SplitPolicy<VALUE> {
 
   @Override
-  public int splitDimension(DoubleVector v, int level) {
+  public int splitDimension(DoubleVector v, int level,
+      List<TreeNode<VALUE>> treeNodes) {
     return median(v, level);
   }
 

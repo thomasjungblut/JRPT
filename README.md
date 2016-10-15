@@ -2,14 +2,16 @@ JRPT
 ====
 
 This library contains containers for approximate nearest neighbour searches in n-dimensional spaces.
-It features a KD-Tree (moved from my common library) and a Random Projection Tree, "RPT" which gives this library its name.
+It features a KD-Tree and a Random Projection Tree, "RPT" which gives this library its name.
+
+All trees can be built in a stochastic fashion, meaning you can feed it one element at a time and query as you go. 
 
 Features / TODO
 --------
 - [x] KD Tree
-- [ ] Random Projection Tree
- - [ ] refinement layer that computes multiple RPTs and combines the result for higher accuracy
-- [ ] Min Hashing
+- [ ] Random Projection Tree (in progress)
+- [ ] refinement layer that computes multiple trees and combines the result for higher accuracy
+- [ ] MinHashing
 - [ ] Benchmarks of accuracy vs. construction time 
 
 Sample Usage

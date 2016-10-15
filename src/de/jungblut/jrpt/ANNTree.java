@@ -1,8 +1,8 @@
 package de.jungblut.jrpt;
 
-import java.lang.reflect.Array;
 import java.util.ArrayDeque;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
@@ -28,14 +28,14 @@ import de.jungblut.math.tuple.Tuple;
  */
 public class ANNTree<VALUE> implements ANN<VALUE> {
 
-  final class TreeNode {
+  public static final class TreeNode<VALUE> {
     final int splitDimension;
     // keyvector by the value in the split dimension
     final DoubleVector keyVector;
     final VALUE value;
 
-    TreeNode left;
-    TreeNode right;
+    TreeNode<VALUE> left;
+    TreeNode<VALUE> right;
 
     public TreeNode(int splitDimension, DoubleVector keyVector, VALUE val) {
       this.splitDimension = splitDimension;
@@ -54,13 +54,14 @@ public class ANNTree<VALUE> implements ANN<VALUE> {
     }
   }
 
-  private final SplitPolicy splitRule;
+  private final SplitPolicy<VALUE> splitRule;
+  private final List<TreeNode<VALUE>> treeNodes = new ArrayList<>();
 
   private int vectorDimension;
-  private TreeNode root;
+  private TreeNode<VALUE> root;
   private int size;
 
-  ANNTree(SplitPolicy splitRule) {
+  public ANNTree(SplitPolicy<VALUE> splitRule) {
     this.splitRule = Preconditions.checkNotNull(splitRule, "splitRule");
   }
 
@@ -85,17 +86,18 @@ public class ANNTree<VALUE> implements ANN<VALUE> {
 
     // shortcut for empty tree
     if (root == null) {
-      root = new TreeNode(splitRule.splitDimension(vec, 0), vec, value);
+      root = new TreeNode<VALUE>(splitRule.splitDimension(vec, 0, treeNodes),
+          vec, value);
       return;
     }
 
-    TreeNode current = root;
+    TreeNode<VALUE> current = root;
     int level = 0;
     boolean right = false;
     // traverse the tree to the free spot that matches the dimension
     while (true) {
       right = current.splitValue() <= vec.get(current.splitDimension);
-      TreeNode next = right ? current.right : current.left;
+      TreeNode<VALUE> next = right ? current.right : current.left;
       if (next == null) {
         break;
       } else {
@@ -104,16 +106,18 @@ public class ANNTree<VALUE> implements ANN<VALUE> {
       level++;
     }
 
-    int splitDimension = splitRule.splitDimension(vec, level);
+    int splitDimension = splitRule.splitDimension(vec, level, treeNodes);
     Preconditions.checkElementIndex(splitDimension, vec.getDimension(),
         "split returned invalid index!");
 
     // do the "real" insert
     // note that current in this case is the parent
+    TreeNode<VALUE> n = new TreeNode<VALUE>(splitDimension, vec, value);
+    treeNodes.add(n);
     if (right) {
-      current.right = new TreeNode(splitDimension, vec, value);
+      current.right = n;
     } else {
-      current.left = new TreeNode(splitDimension, vec, value);
+      current.left = n;
     }
   }
 
@@ -131,31 +135,24 @@ public class ANNTree<VALUE> implements ANN<VALUE> {
 
   @Override
   public void balance() {
-    @SuppressWarnings("unchecked")
-    TreeNode[] nodes = (TreeNode[]) Array.newInstance(TreeNode.class, size());
-    int index = 0;
-    Iterator<TreeNode> iterateNodes = iterateNodes();
-    while (iterateNodes.hasNext()) {
-      nodes[index++] = iterateNodes.next();
-    }
 
-    Arrays.sort(nodes, (o1, o2) -> Doubles.compare(
+    Collections.sort(treeNodes, (o1, o2) -> Doubles.compare(
         o1.keyVector.get(o1.splitDimension),
         o2.keyVector.get(o2.splitDimension)));
 
     // do an inverse binary search to build up the tree from the root
-    root = fix(nodes, 0, nodes.length - 1);
+    root = fix(treeNodes, 0, treeNodes.size() - 1);
   }
 
   /**
    * Fixup the tree recursively by divide and conquering the sorted array.
    */
-  private TreeNode fix(TreeNode[] nodes, int start, int end) {
+  private TreeNode<VALUE> fix(List<TreeNode<VALUE>> nodes, int start, int end) {
     if (start > end) {
       return null;
     } else {
       int mid = (start + end) >>> 1;
-      TreeNode midNode = nodes[mid];
+      TreeNode<VALUE> midNode = nodes.get(mid);
       midNode.left = fix(nodes, start, mid - 1);
       midNode.right = fix(nodes, mid + 1, end);
       return midNode;
@@ -166,19 +163,20 @@ public class ANNTree<VALUE> implements ANN<VALUE> {
   public List<VectorDistanceTuple<VALUE>> rangeQuery(DoubleVector lower,
       DoubleVector upper) {
     List<VectorDistanceTuple<VALUE>> list = Lists.newArrayList();
-    List<TreeNode> rangeInternal = rangeInternal(lower, upper);
-    for (TreeNode node : rangeInternal) {
+    List<TreeNode<VALUE>> rangeInternal = rangeInternal(lower, upper);
+    for (TreeNode<VALUE> node : rangeInternal) {
       list.add(new VectorDistanceTuple<VALUE>(node.keyVector, node.value, 0));
     }
     return list;
   }
 
-  private List<TreeNode> rangeInternal(DoubleVector lower, DoubleVector upper) {
-    List<TreeNode> list = Lists.newArrayList();
-    Deque<TreeNode> toVisit = new ArrayDeque<>();
+  private List<TreeNode<VALUE>> rangeInternal(DoubleVector lower,
+      DoubleVector upper) {
+    List<TreeNode<VALUE>> list = Lists.newArrayList();
+    Deque<TreeNode<VALUE>> toVisit = new ArrayDeque<>();
     toVisit.add(root);
     while (!toVisit.isEmpty()) {
-      TreeNode next = toVisit.pop();
+      TreeNode<VALUE> next = toVisit.pop();
       if (strictLower(upper, next.keyVector)
           && strictHigher(lower, next.keyVector)) {
         list.add(next);
@@ -198,7 +196,7 @@ public class ANNTree<VALUE> implements ANN<VALUE> {
    * checks if the given node is inside the range based on the split.
    */
   private boolean checkSubtree(DoubleVector lower, DoubleVector upper,
-      TreeNode next) {
+      TreeNode<VALUE> next) {
     if (next != null) {
       boolean greater = lower.get(next.splitDimension) >= next.keyVector
           .get(next.splitDimension);
@@ -236,7 +234,7 @@ public class ANNTree<VALUE> implements ANN<VALUE> {
    * Euclidian distance based recursive algorithm for nearest neighbour queries
    * based on Andrew W. Moore.
    */
-  private void getNearestNeighbourInternal(TreeNode current,
+  private void getNearestNeighbourInternal(TreeNode<VALUE> current,
       DoubleVector target, HyperRectangle hyperRectangle,
       double maxDistSquared, int k, final double radius,
       LimitedPriorityQueue<VectorDistanceTuple<VALUE>> queue) {
@@ -254,9 +252,9 @@ public class ANNTree<VALUE> implements ANN<VALUE> {
     leftHyperRectangle.max.set(s, pivot.get(s));
     rightHyperRectangle.min.set(s, pivot.get(s));
     boolean left = target.get(s) > pivot.get(s);
-    TreeNode nearestNode;
+    TreeNode<VALUE> nearestNode;
     HyperRectangle nearestHyperRectangle;
-    TreeNode furtherstNode;
+    TreeNode<VALUE> furtherstNode;
     HyperRectangle furtherstHyperRectangle;
     if (left) {
       nearestNode = current.left;
@@ -305,7 +303,7 @@ public class ANNTree<VALUE> implements ANN<VALUE> {
 
   // iterator for the implementation detail of tree nodes for test cases and
   // additional asserts
-  Iterator<TreeNode> iterateNodes() {
+  Iterator<TreeNode<VALUE>> iterateNodes() {
     return new BreadthFirstIterator();
   }
 
@@ -324,8 +322,8 @@ public class ANNTree<VALUE> implements ANN<VALUE> {
     return sb.toString();
   }
 
-  private StringBuilder prettyPrintIternal(TreeNode node, StringBuilder sb,
-      int depth) {
+  private StringBuilder prettyPrintIternal(TreeNode<VALUE> node,
+      StringBuilder sb, int depth) {
     if (node != null) {
       sb.append("\n").append(Strings.repeat("\t", depth));
       sb.append(node.keyVector + " " + node.splitDimension);
@@ -355,17 +353,18 @@ public class ANNTree<VALUE> implements ANN<VALUE> {
     return true;
   }
 
-  private final class BreadthFirstIterator extends AbstractIterator<TreeNode> {
+  private final class BreadthFirstIterator extends
+      AbstractIterator<TreeNode<VALUE>> {
 
-    private final Deque<TreeNode> toVisit = new ArrayDeque<>();
-    TreeNode current;
+    private final Deque<TreeNode<VALUE>> toVisit = new ArrayDeque<>();
+    TreeNode<VALUE> current;
 
     public BreadthFirstIterator() {
       toVisit.add(root);
     }
 
     @Override
-    protected TreeNode computeNext() {
+    protected TreeNode<VALUE> computeNext() {
       current = toVisit.poll();
       if (current != null) {
         if (current.left != null) {
@@ -390,7 +389,7 @@ public class ANNTree<VALUE> implements ANN<VALUE> {
 
     @Override
     protected DoubleVector computeNext() {
-      TreeNode next = inOrderIterator.computeNext();
+      TreeNode<VALUE> next = inOrderIterator.computeNext();
       return next != null ? next.keyVector : endOfData();
     }
 

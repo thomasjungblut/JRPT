@@ -33,10 +33,10 @@ public class KDTreeTest {
         new DenseDoubleVector(new double[] { 4 }),
         new DenseDoubleVector(new double[] { 2 }),
         new DenseDoubleVector(new double[] { 6 }),
-        new DenseDoubleVector(new double[] { 1 }),
         new DenseDoubleVector(new double[] { 3 }),
         new DenseDoubleVector(new double[] { 5 }),
-        new DenseDoubleVector(new double[] { 7 }), };
+        new DenseDoubleVector(new double[] { 7 }),
+        new DenseDoubleVector(new double[] { 1 }), };
 
     tree.addVectorStream(Arrays.asList(array).stream());
 
